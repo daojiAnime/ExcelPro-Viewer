@@ -6,37 +6,36 @@ import { DataGrid } from './DataGrid';
 
 interface ExcelViewerProps {
   workbook: WorkbookData;
+  activeSheet: string;
+  onSheetChange: (sheetName: string) => void;
 }
 
-export const ExcelViewer: React.FC<ExcelViewerProps> = ({ workbook }) => {
-  const [currentSheetName, setCurrentSheetName] = useState<string>(workbook.sheetNames[0]);
+export const ExcelViewer: React.FC<ExcelViewerProps> = ({ workbook, activeSheet, onSheetChange }) => {
   const [sheetData, setSheetData] = useState<{ rows: SheetRow[], merges: MergeRange[] }>({ rows: [], merges: [] });
   const [page, setPage] = useState(1);
   const [pageSize] = useState(50);
   const [loading, setLoading] = useState(false);
 
-  // Reset when workbook changes
+  // When activeSheet or workbook changes, load the new data
   useEffect(() => {
-    if (workbook.sheetNames.length > 0) {
-      handleSheetChange(workbook.sheetNames[0]);
+    if (activeSheet) {
+      handleSheetLoad(activeSheet);
     }
-  }, [workbook]);
+  }, [activeSheet, workbook]);
 
-  const handleSheetChange = (name: string) => {
+  const handleSheetLoad = (name: string) => {
     setLoading(true);
     // Use timeout to allow UI to show loading state for large sheets
     setTimeout(() => {
       const data = getSheetData(workbook.raw, name);
       setSheetData(data);
-      setCurrentSheetName(name);
       setPage(1);
       setLoading(false);
     }, 50);
   };
 
-  const totalPages = Math.ceil((sheetData.rows.length - 1) / pageSize); // Subtract header row assumption or raw length
+  const totalPages = Math.ceil((sheetData.rows.length - 1) / pageSize); 
   const displayRows = useMemo(() => {
-    // Simple pagination
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     return sheetData.rows.slice(start, end);
@@ -46,17 +45,17 @@ export const ExcelViewer: React.FC<ExcelViewerProps> = ({ workbook }) => {
   const handleNextPage = () => setPage(p => Math.min(totalPages || 1, p + 1));
 
   // Find index for Next/Prev sheet navigation
-  const currentSheetIndex = workbook.sheetNames.indexOf(currentSheetName);
+  const currentSheetIndex = workbook.sheetNames.indexOf(activeSheet);
 
   const handleNextSheet = () => {
     if (currentSheetIndex < workbook.sheetNames.length - 1) {
-      handleSheetChange(workbook.sheetNames[currentSheetIndex + 1]);
+      onSheetChange(workbook.sheetNames[currentSheetIndex + 1]);
     }
   };
 
   const handlePrevSheet = () => {
     if (currentSheetIndex > 0) {
-      handleSheetChange(workbook.sheetNames[currentSheetIndex - 1]);
+      onSheetChange(workbook.sheetNames[currentSheetIndex - 1]);
     }
   };
 
@@ -70,8 +69,8 @@ export const ExcelViewer: React.FC<ExcelViewerProps> = ({ workbook }) => {
           <label className="text-slate-500 dark:text-slate-400 text-sm whitespace-nowrap">Select worksheet:</label>
           <div className="relative flex-1 md:min-w-[300px]">
             <select
-              value={currentSheetName}
-              onChange={(e) => handleSheetChange(e.target.value)}
+              value={activeSheet}
+              onChange={(e) => onSheetChange(e.target.value)}
               className="w-full appearance-none bg-white dark:bg-[#0f1219] border border-gray-300 dark:border-indigo-500/30 text-slate-700 dark:text-slate-200 text-sm rounded-md py-2 pl-3 pr-8 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
             >
               {workbook.sheetNames.map((name) => (
@@ -115,17 +114,17 @@ export const ExcelViewer: React.FC<ExcelViewerProps> = ({ workbook }) => {
                 disabled={currentSheetIndex === 0}
                 className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-[#232936] text-slate-600 dark:text-slate-300 text-sm rounded hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white disabled:opacity-40 disabled:hover:bg-gray-100 dark:disabled:hover:bg-[#232936] disabled:hover:text-slate-600 dark:disabled:hover:text-slate-300 transition-all border border-gray-200 dark:border-slate-700"
               >
-                <ChevronLeft className="w-3 h-3" /> Previous Sheet
+                <ChevronLeft className="w-3 h-3" /> Prev
               </button>
               <span className="text-xs text-slate-500 hidden lg:block">
-                {loading ? 'Loading...' : `Sheet ${currentSheetIndex + 1} of ${workbook.sheetNames.length}`}
+                {loading ? '...' : `${currentSheetIndex + 1} / ${workbook.sheetNames.length}`}
               </span>
               <button
                 onClick={handleNextSheet}
                 disabled={currentSheetIndex === workbook.sheetNames.length - 1}
                 className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-500 disabled:opacity-40 disabled:hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-500/20 dark:shadow-indigo-900/20"
               >
-                Next Sheet <ChevronRight className="w-3 h-3" />
+                Next <ChevronRight className="w-3 h-3" />
               </button>
            </div>
         </div>

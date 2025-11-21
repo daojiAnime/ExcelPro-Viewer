@@ -15,7 +15,8 @@ export const parseExcelFile = async (file: File): Promise<WorkbookData> => {
         resolve({
           raw: workbook,
           sheetNames: workbook.SheetNames,
-          fileName: file.name
+          fileName: file.name,
+          file: file // Store the original file object
         });
       } catch (error) {
         reject(error);

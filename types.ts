@@ -4,6 +4,7 @@ export interface WorkbookData {
   raw: WorkBook;
   sheetNames: string[];
   fileName: string;
+  file: File;
 }
 
 export type SheetRow = (string | number | null)[];

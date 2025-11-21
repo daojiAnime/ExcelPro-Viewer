@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { FileSpreadsheet, Moon, Sun } from 'lucide-react';
+import { FileSpreadsheet, Moon, Sun, Send } from 'lucide-react';
 import { FileUploader } from './components/FileUploader';
 import { ExcelViewer } from './components/ExcelViewer';
 import { parseExcelFile } from './services/excelService';
@@ -7,7 +7,9 @@ import { WorkbookData } from './types';
 
 const App: React.FC = () => {
   const [workbook, setWorkbook] = useState<WorkbookData | null>(null);
+  const [currentSheetName, setCurrentSheetName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
 
@@ -26,6 +28,10 @@ const App: React.FC = () => {
     try {
       const data = await parseExcelFile(file);
       setWorkbook(data);
+      // Default to first sheet
+      if (data.sheetNames.length > 0) {
+        setCurrentSheetName(data.sheetNames[0]);
+      }
     } catch (err) {
       console.error(err);
       setError('Failed to parse Excel file. Please ensure it is a valid .xlsx or .xls file.');
@@ -36,8 +42,43 @@ const App: React.FC = () => {
 
   const handleReset = useCallback(() => {
     setWorkbook(null);
+    setCurrentSheetName("");
     setError(null);
   }, []);
+
+  const handleSheetChange = useCallback((name: string) => {
+    setCurrentSheetName(name);
+  }, []);
+
+  // This is where you would send data to your API
+  const handleApiSubmit = async () => {
+    if (!workbook || !currentSheetName) return;
+    
+    setIsSubmitting(true);
+    try {
+        // --- API LOGIC GOES HERE ---
+        // Example FormData construction:
+        // const formData = new FormData();
+        // formData.append('file', workbook.file);
+        // formData.append('sheetName', currentSheetName);
+        // await fetch('/api/endpoint', { method: 'POST', body: formData });
+
+        console.log("--------------------------------------------------");
+        console.log("READY TO SEND TO API:");
+        console.log("File Object:", workbook.file);
+        console.log("Selected Sheet:", currentSheetName);
+        console.log("--------------------------------------------------");
+        
+        // Simulate delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        alert(`Ready to send:\nFile: ${workbook.file.name}\nSheet: ${currentSheetName}`);
+    } catch (e) {
+        console.error("Submission error", e);
+        setError("Failed to submit data.");
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0f1219] flex flex-col text-slate-900 dark:text-slate-200 font-sans transition-colors duration-300">
@@ -53,6 +94,25 @@ const App: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-4">
+          {workbook && (
+             <button
+                onClick={handleApiSubmit}
+                disabled={isSubmitting}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
+             >
+                {isSubmitting ? (
+                    <>Processing...</>
+                ) : (
+                    <>
+                        <Send className="w-4 h-4" />
+                        Process Sheet
+                    </>
+                )}
+             </button>
+          )}
+
+          <div className="h-6 w-px bg-gray-200 dark:bg-slate-700 mx-1"></div>
+
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
@@ -66,7 +126,7 @@ const App: React.FC = () => {
               onClick={handleReset}
               className="text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800"
             >
-              Upload New File
+              Upload New
             </button>
           )}
         </div>
@@ -85,7 +145,11 @@ const App: React.FC = () => {
             <FileUploader onFileSelect={handleFileSelect} isLoading={isLoading} />
           </div>
         ) : (
-          <ExcelViewer workbook={workbook} />
+          <ExcelViewer 
+             workbook={workbook} 
+             activeSheet={currentSheetName}
+             onSheetChange={handleSheetChange}
+          />
         )}
       </main>
     </div>
